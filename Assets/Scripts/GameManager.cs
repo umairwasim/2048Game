@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using DG.Tweening;
 
 public class GameManager : MonoBehaviour
 {
@@ -22,10 +23,14 @@ public class GameManager : MonoBehaviour
     private readonly List<Block> blocks = new List<Block>();
 
     private int round = 0;
+    private float snapDuration = 0.2f;
     private readonly float boardOffset = 0.5f;
 
     private BlockType GetBlockByValue(int value) => blockTypes.Find(b => b.value == value);
+
     private Node GetNodeAtPosition(Vector2 position) => nodes.FirstOrDefault(n => n.Pos == position);
+
+    private Tile GetTileAtPosition(Vector2 position) => tiles.FirstOrDefault(t => t.Pos == position);
 
     private void ChangeGameState(GameState currentState)
     {
@@ -36,7 +41,7 @@ public class GameManager : MonoBehaviour
                 GenerateGrid();
                 break;
             case GameState.SpawningBlocks:
-                SpawnBlocks(2); //round++ wil be 0 for the fist time. Generate 2 for the fist time and 1 every other time 
+                SpawnBlocks(round++ == 0 ? 2 : 1); //round++ will be 0 for the fist time. Generate 2 for the fist time and 1 every other time 
                 break;
             case GameState.WaitForInput:
                 break;
@@ -55,18 +60,18 @@ public class GameManager : MonoBehaviour
     {
         if (gameState != GameState.WaitForInput)
             return;
-
+        //Arrow Keys Input
         if (Input.GetKeyDown(KeyCode.LeftArrow))
-            Shift(Vector2.left);
+            ShiftBlocks(Vector2.left);
 
         if (Input.GetKeyDown(KeyCode.RightArrow))
-            Shift(Vector2.right);
+            ShiftBlocks(Vector2.right);
 
         if (Input.GetKeyDown(KeyCode.UpArrow))
-            Shift(Vector2.up);
+            ShiftBlocks(Vector2.up);
 
         if (Input.GetKeyDown(KeyCode.DownArrow))
-            Shift(Vector2.down);
+            ShiftBlocks(Vector2.down);
     }
 
     private void GenerateGrid()
@@ -90,9 +95,6 @@ public class GameManager : MonoBehaviour
             {
                 var tile = Instantiate(tilePrefab, new Vector2(x, y), Quaternion.identity);
                 tiles.Add(tile);
-
-                //var node = Instantiate(nodePrefab, new Vector2(x, y), Quaternion.identity);
-                //nodes.Add(node);
             }
         }
         #endregion
@@ -102,14 +104,21 @@ public class GameManager : MonoBehaviour
 
     private void SpawnBlocks(int numberOfBlocks)
     {
-        //get the free/non-occupied nodes and order them randomly
-        // var freeNodes = nodes.Where(n => n.occupiedBlock == null).OrderBy(n => Random.value).ToList();
-        var freeTiles = tiles.Where(t => t.occupiedBBlock == null).OrderBy(t => Random.value).ToList();
+        //Randomly choose tiles with no occupied block 
+        var freeTiles = tiles.Where(t => t.occupiedBlock == null).OrderBy(t => Random.value).ToList();
 
-        foreach (var freeTile in freeTiles.Take(round++ == 1 ? 1 : 2))
+        foreach (var freeTile in freeTiles.Take(numberOfBlocks))
         {
+            //Spawn given number of blocks
             var spawnBlock = Instantiate(blockPrefab, freeTile.Pos, Quaternion.identity);
+
+            //Add spawned block to the list of blocks
             blocks.Add(spawnBlock);
+
+            //Set the relevant freeTile as Tile of the spawned block
+            spawnBlock.SetBlockOnNewTile(freeTile);
+
+            //Set the value of the spawned block 
             spawnBlock.Init(GetBlockByValue(Random.value > 0.8f ? 4 : 2));
         }
 
@@ -121,22 +130,48 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        //foreach (var freeNode in freeNodes.Take(blockAmount))
-        //{
-        //    var block = Instantiate(blockPrefab, freeNode.Pos, Quaternion.identity);
-        //    // Debug.Log("Block " + block);
-        //    block.Init(GetBlockByValue(2));// (Random.value > 0.0f ? 4 : 2));
-        //    block.SetBlock(freeNode);
-        //    blocks.Add(block);
-        //}
-
-        //if (freeNodes.Count() == 1)
-        //{
-        //    ChangeGameState(GameState.Lose);
-        //    print("you lost the game, call game over panel");
-        //    return;
-        //}
         ChangeGameState(GameState.WaitForInput);
+    }
+
+    void ShiftBlocks(Vector2 direction)
+    {
+        var orderedBlocks = blocks.OrderBy(b => b.Pos.x).ThenBy(b => b.Pos.y).ToList();
+
+        //For opposite direction Inputs
+        if (direction == Vector2.right || direction == Vector2.up)
+            orderedBlocks.Reverse();
+
+        foreach (var block in orderedBlocks)
+        {
+            //store block's current tile reference
+            var currentTile = block.currentTile;
+            do
+            {
+                //set block's own tile as current tile
+                block.SetBlockOnNewTile(currentTile);
+
+                //look for next possible tile at position (which is our current tile's position
+                //and the direction it is moving in)
+                var nextPossibleTile = GetTileAtPosition(currentTile.Pos + direction);
+
+                //if we have a possible next tile
+                if (nextPossibleTile != null)
+                {
+                    //if next possible tile's occupied block is not already taken 
+                    if(nextPossibleTile.occupiedBlock == null)
+                    {
+                        //set our current tile to next possible tile
+                        currentTile = nextPossibleTile;
+                    }
+                }
+
+                //loop through until my currentTile and block's currentTile aren't same, 
+            } while (currentTile != block.currentTile);
+
+            //set block's position to it's current tile position (move block)
+            block.transform.DOMove(block.currentTile.Pos, snapDuration);
+           // block.transform.position = block.currentTile.Pos;
+        }
     }
 
     void Shift(Vector2 direction)
@@ -178,6 +213,7 @@ public class GameManager : MonoBehaviour
     }
 
 }
+
 [Serializable]
 public struct BlockType
 {

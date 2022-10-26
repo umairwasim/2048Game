@@ -18,6 +18,19 @@ public class Block : MonoBehaviour
         blockText.text = type.value.ToString();
     }
 
+    public void SetBlockOnNewTile(Tile newTile)
+    {
+        //Check if the current Tile is not already set and has its block occupied.
+        //If so, make it null so that we can set newTile to currentTile and
+        //now this block should be the currentTile's occupied block/set this block
+        //as currentTile's occupied block
+        if (currentTile != null)
+            currentTile.occupiedBlock = null;
+
+        currentTile = newTile;
+        currentTile.occupiedBlock = this;
+    }
+
     public void SetBlock(Node newNode)
     {
         //check if the current node is already occupied, if so, clear its occupied block
@@ -29,12 +42,4 @@ public class Block : MonoBehaviour
         currentNode.occupiedBlock = this;
     }
 
-    public void SetBlockAtTile(Tile newTile)
-    {
-        if (currentTile != null)
-            currentTile.occupiedBBlock = null;
-
-        currentTile = newTile;
-        currentTile.occupiedBBlock = this;
-    }
 }
