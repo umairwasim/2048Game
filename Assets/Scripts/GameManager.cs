@@ -12,14 +12,12 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int width = 4;
     [SerializeField] private int height = 4;
 
-    [SerializeField] private Node nodePrefab;               //Container for our block
     [SerializeField] private Tile tilePrefab;               //Tile is a container for block
     [SerializeField] private Block blockPrefab;             //Actual block prefab with number and color
     [SerializeField] private SpriteRenderer boardPrefab;
     [SerializeField] private List<BlockType> blockTypes;
 
     private readonly List<Tile> tiles = new List<Tile>();
-    private readonly List<Node> nodes = new List<Node>();
     private readonly List<Block> blocks = new List<Block>();
 
     private int round = 0;
@@ -28,20 +26,20 @@ public class GameManager : MonoBehaviour
 
     private BlockType GetBlockByValue(int value) => blockTypes.Find(b => b.value == value);
 
-    private Node GetNodeAtPosition(Vector2 position) => nodes.FirstOrDefault(n => n.Pos == position);
-
     private Tile GetTileAtPosition(Vector2 position) => tiles.FirstOrDefault(t => t.Pos == position);
 
     private void ChangeGameState(GameState currentState)
     {
         gameState = currentState;
+
         switch (currentState)
         {
             case GameState.GenerateGrid:
-                GenerateGrid();
+                GenerateBoardAndTiles();
                 break;
             case GameState.SpawningBlocks:
-                SpawnBlocks(round++ == 0 ? 2 : 1); //round++ will be 0 for the fist time. Generate 2 for the fist time and 1 every other time 
+                SpawnBlocks(round++ == 0 ? 2 : 1); //round++ will be 0 for the fist time.
+                                                   //Generate 2 for the fist time and 1 every other time 
                 break;
             case GameState.WaitForInput:
                 break;
@@ -74,7 +72,7 @@ public class GameManager : MonoBehaviour
             ShiftBlocks(Vector2.down);
     }
 
-    private void GenerateGrid()
+    private void GenerateBoardAndTiles()
     {
         //center board value, store in a vector
         var center = new Vector2(width * 0.5f - boardOffset, height * 0.5f - boardOffset);
@@ -88,7 +86,7 @@ public class GameManager : MonoBehaviour
         //center the camera , -10 along z axis
         Camera.main.transform.position = new Vector3(center.x, center.y, -10);
 
-        #region Base Tiles Intantiate
+        #region Tiles Intantiation
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
@@ -109,14 +107,14 @@ public class GameManager : MonoBehaviour
 
         foreach (var freeTile in freeTiles.Take(numberOfBlocks))
         {
-            //Spawn given number of blocks
+            //Spawn given number of blocks at our freeTile position
             var spawnBlock = Instantiate(blockPrefab, freeTile.Pos, Quaternion.identity);
 
             //Add spawned block to the list of blocks
             blocks.Add(spawnBlock);
 
             //Set the relevant freeTile as Tile of the spawned block
-            spawnBlock.SetBlockOnNewTile(freeTile);
+            spawnBlock.SetBlockOnTile(freeTile);
 
             //Set the value of the spawned block 
             spawnBlock.Init(GetBlockByValue(Random.value > 0.8f ? 4 : 2));
@@ -135,20 +133,25 @@ public class GameManager : MonoBehaviour
 
     void ShiftBlocks(Vector2 direction)
     {
+        ChangeGameState(GameState.Moving);
+
+        #region Order Blocks
+        //order the blocks by X and then by Y
         var orderedBlocks = blocks.OrderBy(b => b.Pos.x).ThenBy(b => b.Pos.y).ToList();
 
         //For opposite direction Inputs
         if (direction == Vector2.right || direction == Vector2.up)
             orderedBlocks.Reverse();
+        #endregion
 
         foreach (var block in orderedBlocks)
         {
             //store block's current tile reference
-            var currentTile = block.currentTile;
+            var currentTile = block.myCurrentTile;
             do
             {
                 //set block's own tile as current tile
-                block.SetBlockOnNewTile(currentTile);
+                block.SetBlockOnTile(currentTile);
 
                 //look for next possible tile at position (which is our current tile's position
                 //and the direction it is moving in)
@@ -157,61 +160,26 @@ public class GameManager : MonoBehaviour
                 //if we have a possible next tile
                 if (nextPossibleTile != null)
                 {
-                    //if next possible tile's occupied block is not already taken 
-                    if(nextPossibleTile.occupiedBlock == null)
+                    //if next possible tile's occupied block is already occupied, check if we can merge
+                    if (nextPossibleTile.occupiedBlock != null)
+                    {
+
+                    }
+                    //if next possible tile's occupied block is not already occupied 
+                    else if (nextPossibleTile.occupiedBlock == null)
                     {
                         //set our current tile to next possible tile
                         currentTile = nextPossibleTile;
                     }
                 }
 
-                //loop through until my currentTile and block's currentTile aren't same, 
-            } while (currentTile != block.currentTile);
+                //loop through until my currentTile and block's currentTile aren't the same 
+            } while (currentTile != block.myCurrentTile);
 
-            //set block's position to it's current tile position (move block)
-            block.transform.DOMove(block.currentTile.Pos, snapDuration);
-           // block.transform.position = block.currentTile.Pos;
+            // (move block) set block's position to it's current tile position
+            block.transform.DOMove(block.myCurrentTile.Pos, snapDuration);
         }
     }
-
-    void Shift(Vector2 direction)
-    {
-        Debug.Log(" Shifting in  direction " + direction);
-        var orderedBlocks = blocks.OrderBy(b => b.Pos.x).ThenBy(b => b.Pos.y).ToList();
-        Debug.Log(" Ordered blocks " + orderedBlocks.Count);
-
-        if (direction == Vector2.right || direction == Vector2.up)
-            orderedBlocks.Reverse();
-
-        foreach (var block in orderedBlocks)
-        {
-            // Debug.Log(" current block's Node" + block.currentNode);
-            var currentNode = block.currentNode;
-
-            do
-            {
-                block.SetBlock(currentNode);
-
-                var possibleNode = GetNodeAtPosition(currentNode.Pos + direction);
-
-                if (possibleNode != null)
-                {
-                    if (possibleNode.occupiedBlock == null)
-                    {
-                        currentNode = possibleNode;
-                    }
-                }
-            }
-            while (currentNode != block.currentNode);
-            {
-                //Debug.Log(" move block " + block + " from position" + block.transform.position + " to " + block.currentNode.Pos + " block.currentNode.Pos");
-                block.transform.position = block.currentNode.Pos;
-            }
-
-        }
-
-    }
-
 }
 
 [Serializable]
