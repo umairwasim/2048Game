@@ -38,8 +38,7 @@ public class GameManager : MonoBehaviour
                 GenerateBoardAndTiles();
                 break;
             case GameState.SpawningBlocks:
-                SpawnBlocks(round++ == 0 ? 2 : 1); //round++ will be 0 for the fist time.
-                                                   //Generate 2 for the fist time and 1 every other time 
+                SpawnBlocks(round++ == 0 ? 2 : 1); //round++ will be 0 for the fist time.Generate 2 for the fist time and 1 every other time 
                 break;
             case GameState.WaitForInput:
                 break;
@@ -58,6 +57,7 @@ public class GameManager : MonoBehaviour
     {
         if (gameState != GameState.WaitForInput)
             return;
+
         //Arrow Keys Input
         if (Input.GetKeyDown(KeyCode.LeftArrow))
             ShiftBlocks(Vector2.left);
@@ -100,24 +100,30 @@ public class GameManager : MonoBehaviour
         ChangeGameState(GameState.SpawningBlocks);
     }
 
+    private void SpawnBlock(Tile freeTile, int value)
+    {
+        //Spawn given number of blocks at our freeTile position
+        var spawnBlock = Instantiate(blockPrefab, freeTile.Pos, Quaternion.identity);
+
+        //Add spawned block to the list of blocks
+        blocks.Add(spawnBlock);
+
+        //Set the relevant freeTile as Tile of the spawned block
+        spawnBlock.SetBlockOnTile(freeTile);
+
+        //Set the value of the spawned block 
+        spawnBlock.Init(GetBlockByValue(value));
+    }
+
     private void SpawnBlocks(int numberOfBlocks)
     {
+        Debug.Log(round++ == 0 ? 2 : 1 + "  round++ == 0 ? 2 : 1" + "round  " + round);
         //Randomly choose tiles with no occupied block 
         var freeTiles = tiles.Where(t => t.occupiedBlock == null).OrderBy(t => Random.value).ToList();
 
         foreach (var freeTile in freeTiles.Take(numberOfBlocks))
         {
-            //Spawn given number of blocks at our freeTile position
-            var spawnBlock = Instantiate(blockPrefab, freeTile.Pos, Quaternion.identity);
-
-            //Add spawned block to the list of blocks
-            blocks.Add(spawnBlock);
-
-            //Set the relevant freeTile as Tile of the spawned block
-            spawnBlock.SetBlockOnTile(freeTile);
-
-            //Set the value of the spawned block 
-            spawnBlock.Init(GetBlockByValue(Random.value > 0.8f ? 4 : 2));
+            SpawnBlock(freeTile, Random.value > 0.8f ? 4 : 2);
         }
 
         if (freeTiles.Count() <= 1)
@@ -141,29 +147,34 @@ public class GameManager : MonoBehaviour
 
         //For opposite direction Inputs
         if (direction == Vector2.right || direction == Vector2.up)
+        {
             orderedBlocks.Reverse();
+        }
         #endregion
 
-        foreach (var block in orderedBlocks)
+        foreach (Block newBlock in orderedBlocks)
         {
             //store block's current tile reference
-            var currentTile = block.myCurrentTile;
+            Tile currentTile = newBlock.myCurrentTile;
             do
             {
                 //set block's own tile as current tile
-                block.SetBlockOnTile(currentTile);
+                newBlock.SetBlockOnTile(currentTile);
 
                 //look for next possible tile at position (which is our current tile's position
                 //and the direction it is moving in)
-                var nextPossibleTile = GetTileAtPosition(currentTile.Pos + direction);
+                Tile nextPossibleTile = GetTileAtPosition(currentTile.Pos + direction);
 
                 //if we have a possible next tile
                 if (nextPossibleTile != null)
                 {
-                    //if next possible tile's occupied block is already occupied, check if we can merge
-                    if (nextPossibleTile.occupiedBlock != null)
+                    //if next possible tile's occupied block is already occupied and
+                    //its value is equal to our block value. Check if we can merge into it
+                    if (nextPossibleTile.occupiedBlock != null &&
+                        nextPossibleTile.occupiedBlock.CanMerge(newBlock.blockValue))
                     {
-
+                        //this block's merging block is equal to nextPossibleTile's occupied block
+                        newBlock.MergeBlock(nextPossibleTile.occupiedBlock);
                     }
                     //if next possible tile's occupied block is not already occupied 
                     else if (nextPossibleTile.occupiedBlock == null)
@@ -174,11 +185,57 @@ public class GameManager : MonoBehaviour
                 }
 
                 //loop through until my currentTile and block's currentTile aren't the same 
-            } while (currentTile != block.myCurrentTile);
+            } while (currentTile != newBlock.myCurrentTile);
+
+        }
+
+        #region Moving Blocks
+        var sequence = DOTween.Sequence();
+
+        foreach (Block moveBlock in orderedBlocks)
+        {
+            //if the block's merging block is occupied,
+            //our move position will be block's merging block Tile's position
+            //else our position will be block's tile position
+            var movePosition = moveBlock.mergingBlock != null ?
+                moveBlock.mergingBlock.myCurrentTile.Pos : moveBlock.myCurrentTile.Pos;
 
             // (move block) set block's position to it's current tile position
-            block.transform.DOMove(block.myCurrentTile.Pos, snapDuration);
+            sequence.Insert(0, moveBlock.transform.DOMove(movePosition, snapDuration));
+
+            sequence.OnComplete(() =>
+            {
+                foreach (var block in orderedBlocks.Where(b => b.mergingBlock != null))
+                {
+                    MergeBlock(block, moveBlock);
+                }
+            });
+
+            ChangeGameState(GameState.SpawningBlocks);
         }
+        #endregion
+    }
+
+    #region Merge Block
+    void MergeBlock(Block baseBlock, Block mergingBlock)
+    {
+        //spawn a new block at base block's tile and base block value multiplied by 2 (since merging the values too)
+        SpawnBlock(baseBlock.myCurrentTile, baseBlock.blockValue * 2);
+
+        //Destroy both base and merging blocks after spawning a new merged block 
+        DestroyBlock(baseBlock);
+        DestroyBlock(mergingBlock);
+    }
+
+    #endregion
+
+    void DestroyBlock(Block block)
+    {
+        //remove from the list of blocks
+        blocks.Remove(block);
+
+        //then destroy its game object
+        Destroy(block.gameObject);
     }
 }
 

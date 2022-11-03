@@ -155,7 +155,6 @@ MonoBehaviour:
   gameState: 0
   width: 4
   height: 4
-  nodePrefab: {fileID: 430016665633423351, guid: 716aacc85b45f26499242034d81e29db, type: 3}
   tilePrefab: {fileID: 2576052519651324950, guid: f8b79862ab99eae408d9c6a6cc4df00d, type: 3}
   blockPrefab: {fileID: 1552272114841131278, guid: e0c04ee85971570478831f40e5ecb693, type: 3}
   boardPrefab: {fileID: 8941887134854780865, guid: fed8f23e7dd376d4ab648e7ddf54819e, type: 3}
@@ -163,7 +162,7 @@ MonoBehaviour:
   - value: 2
     color: {r: 0.76862746, g: 0.16470589, b: 0.03529412, a: 1}
   - value: 4
-    color: {r: 0.8745098, g: 0.4, b: 0.7372549, a: 1}
+    color: {r: 0.8396226, g: 0.2745935, b: 0.6761845, a: 1}
   - value: 8
     color: {r: 0.3764706, g: 0.7372549, b: 0.25882354, a: 1}
   - value: 16
@@ -233,7 +232,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.5943396, g: 0.31658277, b: 0, a: 0}
+  m_BackGroundColor: {r: 1, g: 0.53289473, b: 0, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
