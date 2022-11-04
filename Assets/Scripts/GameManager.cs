@@ -16,12 +16,13 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Block blockPrefab;             //Actual block prefab with number and color
     [SerializeField] private SpriteRenderer boardPrefab;
     [SerializeField] private List<BlockType> blockTypes;
+    [SerializeField] private float snapDuration = 0.2f;
+    [SerializeField] private int winValue = 2048;
 
     private readonly List<Tile> tiles = new List<Tile>();
     private readonly List<Block> blocks = new List<Block>();
 
     private int round = 0;
-    private float snapDuration = 0.2f;
     private readonly float boardOffset = 0.5f;
 
     private BlockType GetBlockByValue(int value) => blockTypes.Find(b => b.value == value);
@@ -38,7 +39,7 @@ public class GameManager : MonoBehaviour
                 GenerateBoardAndTiles();
                 break;
             case GameState.SpawningBlocks:
-                SpawnBlocks(round++ == 0 ? 2 : 1); //round++ will be 0 for the fist time.Generate 2 for the fist time and 1 every other time 
+                SpawnBlocks(round);  //(round++ == 0 ? 2 : 1); //round++ will be 0 for the fist time.Generate 2 for the fist time and 1 every other time 
                 break;
             case GameState.WaitForInput:
                 break;
@@ -117,7 +118,11 @@ public class GameManager : MonoBehaviour
 
     private void SpawnBlocks(int numberOfBlocks)
     {
-        Debug.Log(round++ == 0 ? 2 : 1 + "  round++ == 0 ? 2 : 1" + "round  " + round);
+        if (round == 0)
+            numberOfBlocks = 2;
+        else
+            numberOfBlocks = 1;
+
         //Randomly choose tiles with no occupied block 
         var freeTiles = tiles.Where(t => t.occupiedBlock == null).OrderBy(t => Random.value).ToList();
 
@@ -126,7 +131,7 @@ public class GameManager : MonoBehaviour
             SpawnBlock(freeTile, Random.value > 0.8f ? 4 : 2);
         }
 
-        if (freeTiles.Count() <= 1)
+        if (freeTiles.Count() < 1)
         {
             //GAME OVER
             ChangeGameState(GameState.Lose);
@@ -134,7 +139,10 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        ChangeGameState(GameState.WaitForInput);
+        //Increment round at the very end so for the next iteration, it is incremented
+        round++;
+
+        ChangeGameState(blocks.Any(b => b.blockValue == winValue) ? GameState.Win : GameState.WaitForInput);
     }
 
     void ShiftBlocks(Vector2 direction)
@@ -152,6 +160,7 @@ public class GameManager : MonoBehaviour
         }
         #endregion
 
+        #region Shift Blocks
         foreach (Block newBlock in orderedBlocks)
         {
             //store block's current tile reference
@@ -188,6 +197,7 @@ public class GameManager : MonoBehaviour
             } while (currentTile != newBlock.myCurrentTile);
 
         }
+        #endregion
 
         #region Moving Blocks
         var sequence = DOTween.Sequence();
@@ -207,12 +217,12 @@ public class GameManager : MonoBehaviour
             {
                 foreach (var block in orderedBlocks.Where(b => b.mergingBlock != null))
                 {
-                    MergeBlock(block, moveBlock);
+                    MergeBlock(block.mergingBlock, block);
                 }
             });
 
-            ChangeGameState(GameState.SpawningBlocks);
         }
+        ChangeGameState(GameState.SpawningBlocks);
         #endregion
     }
 
@@ -226,9 +236,9 @@ public class GameManager : MonoBehaviour
         DestroyBlock(baseBlock);
         DestroyBlock(mergingBlock);
     }
-
     #endregion
 
+    #region Destroy Block
     void DestroyBlock(Block block)
     {
         //remove from the list of blocks
@@ -237,14 +247,15 @@ public class GameManager : MonoBehaviour
         //then destroy its game object
         Destroy(block.gameObject);
     }
+    #endregion
 }
 
-[Serializable]
-public struct BlockType
-{
-    public int value;
-    public Color color;
-}
+//[Serializable]
+//public struct BlockType
+//{
+//    public int value;
+//    public Color color;
+//}
 
 public enum GameState
 {
