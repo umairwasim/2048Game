@@ -17,7 +17,8 @@ public class Block : MonoBehaviour
     public void Init(BlockType type)
     {
         blockValue = type.value;
-        blockSpriteRenderer.color = type.color;
+        blockSpriteRenderer.sprite = type.sprite;
+        //blockSpriteRenderer.color = type.color;
         blockText.text = type.value.ToString();
     }
 
@@ -41,7 +42,7 @@ public class Block : MonoBehaviour
     }
 
     public bool CanMerge(int value) => value == blockValue && mergingBlock == null && !isMerging;
-    
+
     public void MergeBlock(Block baseBlock)
     {
         //set our mergingBlock equal to block to merge with (base block)

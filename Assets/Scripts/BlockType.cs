@@ -6,4 +6,5 @@ public struct BlockType
 {
     public int value;
     public Color color;
+    public Sprite sprite;
 }
