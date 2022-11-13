@@ -214,12 +214,12 @@ public class GameManager : MonoBehaviour
             sequence.Insert(0, moveBlock.transform.DOMove(movePosition, snapDuration));
 
             sequence.OnComplete(() =>
-            {
-                foreach (var block in orderedBlocks.Where(b => b.mergingBlock != null))
-                {
-                    MergeBlock(block.mergingBlock, block);
-                }
-            });
+           {
+               foreach (var block in orderedBlocks.Where(b => b.mergingBlock != null))
+               {
+                   MergeBlock(block.mergingBlock, block);
+               }
+           });
 
         }
         ChangeGameState(GameState.SpawningBlocks);
@@ -233,29 +233,22 @@ public class GameManager : MonoBehaviour
         SpawnBlock(baseBlock.myCurrentTile, baseBlock.blockValue * 2);
 
         //Destroy both base and merging blocks after spawning a new merged block 
-        DestroyBlock(baseBlock);
-        DestroyBlock(mergingBlock);
+        DestroyBlock(baseBlock, 0.0001f);
+        DestroyBlock(mergingBlock, 0.0001f);
     }
     #endregion
 
     #region Destroy Block
-    void DestroyBlock(Block block)
+    void DestroyBlock(Block block, float delay)
     {
         //remove from the list of blocks
         blocks.Remove(block);
 
         //then destroy its game object
-        Destroy(block.gameObject);
+        Destroy(block.gameObject, delay);
     }
     #endregion
 }
-
-//[Serializable]
-//public struct BlockType
-//{
-//    public int value;
-//    public Color color;
-//}
 
 public enum GameState
 {

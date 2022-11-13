@@ -18,7 +18,6 @@ public class Block : MonoBehaviour
     {
         blockValue = type.value;
         blockSpriteRenderer.sprite = type.sprite;
-        //blockSpriteRenderer.color = type.color;
         blockText.text = type.value.ToString();
     }
 
