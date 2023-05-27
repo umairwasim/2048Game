@@ -55,5 +55,4 @@ public class Block : MonoBehaviour
         baseBlock.isMerging = true;
     }
 
-
 }
