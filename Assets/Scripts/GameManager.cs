@@ -118,13 +118,17 @@ public class GameManager : MonoBehaviour
 
     private void SpawnBlocks(int numberOfBlocks)
     {
-        if (round == 0)
-            numberOfBlocks = 2;
-        else
-            numberOfBlocks = 1;
+        numberOfBlocks = round == 0 ? numberOfBlocks = 2 : numberOfBlocks = 1;
+
+        //if (round == 0)
+        //    numberOfBlocks = 2;
+        //else
+        //    numberOfBlocks = 1;
 
         //Randomly choose tiles with no occupied block 
-        var freeTiles = tiles.Where(t => t.occupiedBlock == null).OrderBy(t => Random.value).ToList();
+        var freeTiles = tiles
+            .Where(t => t.occupiedBlock == null)
+            .OrderBy(t => Random.value).ToList();
 
         foreach (var freeTile in freeTiles.Take(numberOfBlocks))
         {
@@ -151,7 +155,10 @@ public class GameManager : MonoBehaviour
 
         #region Order Blocks
         //order the blocks by X and then by Y
-        var orderedBlocks = blocks.OrderBy(b => b.Pos.x).ThenBy(b => b.Pos.y).ToList();
+        var orderedBlocks = blocks
+            .OrderBy(b => b.Pos.x)
+            .ThenBy(b => b.Pos.y)
+            .ToList();
 
         //For opposite direction Inputs
         if (direction == Vector2.right || direction == Vector2.up)
@@ -212,7 +219,6 @@ public class GameManager : MonoBehaviour
 
             // (move block) set block's position to it's current tile position
             sequence.Insert(0, moveBlock.transform.DOMove(movePosition, snapDuration));
-
             sequence.OnComplete(() =>
            {
                foreach (var block in orderedBlocks.Where(b => b.mergingBlock != null))
