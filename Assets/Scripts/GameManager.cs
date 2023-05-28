@@ -15,6 +15,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Tile tilePrefab;               //Tile is a container for block
     [SerializeField] private Block blockPrefab;             //Actual block prefab with number and color
     [SerializeField] private SpriteRenderer boardPrefab;
+    [SerializeField] private BlockTypeSO blockTypeSO;
     [SerializeField] private List<BlockType> blockTypes;
     [SerializeField] private float snapDuration = 0.2f;
     [SerializeField] private int winValue = 2048;
@@ -26,6 +27,16 @@ public class GameManager : MonoBehaviour
     private readonly float boardOffset = 0.5f;
 
     private BlockType GetBlockByValue(int value) => blockTypes.Find(b => b.value == value);
+
+    private BlockData GetBlockDataByValue(int value)
+    {
+        foreach (BlockData data in blockTypeSO.blockDataList)
+        {
+            if (data.value == value)
+                return data;
+        }
+        return null;
+    }
 
     private Tile GetTileAtPosition(Vector2 position) => tiles.FirstOrDefault(t => t.Pos == position);
 
@@ -113,7 +124,9 @@ public class GameManager : MonoBehaviour
         spawnBlock.SetBlockOnTile(freeTile);
 
         //Set the value of the spawned block 
-        spawnBlock.Init(GetBlockByValue(value));
+       // spawnBlock.Init(GetBlockByValue(value));
+
+        spawnBlock.Init(GetBlockDataByValue(value));
     }
 
     private void SpawnBlocks(int numberOfBlocks)
