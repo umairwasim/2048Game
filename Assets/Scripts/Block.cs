@@ -21,6 +21,13 @@ public class Block : MonoBehaviour
         blockText.text = type.value.ToString();
     }
 
+    public void Init(BlockData data)
+    {
+        blockValue = data.value;
+        blockSpriteRenderer.sprite = data.sprite;
+        blockText.text = data.value.ToString();
+    }
+
     // A merge can only happen if both blocks have same value,
     // and merging block is null,
     // and the are not already merging
