@@ -47,7 +47,10 @@ public class Block : MonoBehaviour
         myCurrentTile.occupiedBlock = this;
     }
 
-    public bool CanMerge(int value) => value == blockValue && mergingBlock == null && !isMerging;
+    public bool CanMerge(int value)
+    {
+        return value == blockValue && mergingBlock == null && !isMerging;
+    }
 
     public void MergeBlock(Block baseBlock)
     {
