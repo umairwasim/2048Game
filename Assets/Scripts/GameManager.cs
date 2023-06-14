@@ -5,9 +5,22 @@ using UnityEngine;
 using Random = UnityEngine.Random;
 using DG.Tweening;
 
+public enum GameState
+{
+    GenerateGrid,
+    SpawningBlocks,
+    WaitForInput,
+    Moving,
+    Win,
+    Lose
+}
+
 public class GameManager : MonoBehaviour
 {
     public GameState gameState;
+
+    public event Action OnGameWon;
+    public event Action OnGameLost;
 
     [SerializeField] private int width = 4;
     [SerializeField] private int height = 4;
@@ -16,17 +29,17 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Block blockPrefab;             //Actual block prefab with number and color
     [SerializeField] private SpriteRenderer boardPrefab;
     [SerializeField] private BlockTypeSO blockTypeSO;
-    [SerializeField] private List<BlockType> blockTypes;
     [SerializeField] private float snapDuration = 0.2f;
     [SerializeField] private int winValue = 2048;
 
-    private readonly List<Tile> tiles = new List<Tile>();
-    private readonly List<Block> blocks = new List<Block>();
+    private readonly List<Tile> tiles = new();
+    private readonly List<Block> blocks = new();
 
     private int round = 0;
+
     private readonly float boardOffset = 0.5f;
 
-    private BlockType GetBlockByValue(int value) => blockTypes.Find(b => b.value == value);
+    #region Get Functions
 
     private BlockData GetBlockDataByValue(int value)
     {
@@ -38,7 +51,12 @@ public class GameManager : MonoBehaviour
         return null;
     }
 
-    private Tile GetTileAtPosition(Vector2 position) => tiles.FirstOrDefault(t => t.Pos == position);
+    private Tile GetTileAtPosition(Vector2 position)
+    {
+        return tiles.FirstOrDefault(t => t.Pos == position);
+    }
+
+    #endregion
 
     private void ChangeGameState(GameState currentState)
     {
@@ -50,20 +68,41 @@ public class GameManager : MonoBehaviour
                 GenerateBoardAndTiles();
                 break;
             case GameState.SpawningBlocks:
-                SpawnBlocks(round);  //(round++ == 0 ? 2 : 1); //round++ will be 0 for the fist time.Generate 2 for the fist time and 1 every other time 
+                SpawnBlocks(round);
                 break;
             case GameState.WaitForInput:
+                WaitForInput();
                 break;
             case GameState.Moving:
                 break;
             case GameState.Win:
+                GameWon();
                 break;
             case GameState.Lose:
+                GameLost();
                 break;
         }
     }
 
-    private void Start() => ChangeGameState(GameState.GenerateGrid);
+    private void WaitForInput()
+    {
+        //Do nothing and show waiting UI
+    }
+
+    private void GameLost()
+    {
+        OnGameLost?.Invoke();
+    }
+
+    private void GameWon()
+    {
+        OnGameWon?.Invoke();
+    }
+
+    private void Start()
+    {
+        ChangeGameState(GameState.GenerateGrid);
+    }
 
     private void Update()
     {
@@ -84,6 +123,8 @@ public class GameManager : MonoBehaviour
             ShiftBlocks(Vector2.down);
     }
 
+    #region Generate Board
+
     private void GenerateBoardAndTiles()
     {
         //center board value, store in a vector
@@ -98,7 +139,8 @@ public class GameManager : MonoBehaviour
         //center the camera , -10 along z axis
         Camera.main.transform.position = new Vector3(center.x, center.y, -10);
 
-        #region Tiles Intantiation
+        #region Tiles Instantiation
+
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
@@ -107,10 +149,15 @@ public class GameManager : MonoBehaviour
                 tiles.Add(tile);
             }
         }
+
         #endregion
 
         ChangeGameState(GameState.SpawningBlocks);
     }
+
+    #endregion
+
+    #region Shift Block
 
     private void SpawnBlock(Tile freeTile, int value)
     {
@@ -124,7 +171,7 @@ public class GameManager : MonoBehaviour
         spawnBlock.SetBlockOnTile(freeTile);
 
         //Set the value of the spawned block 
-       // spawnBlock.Init(GetBlockByValue(value));
+        // spawnBlock.Init(GetBlockByValue(value));
 
         spawnBlock.Init(GetBlockDataByValue(value));
     }
@@ -133,15 +180,11 @@ public class GameManager : MonoBehaviour
     {
         numberOfBlocks = round == 0 ? numberOfBlocks = 2 : numberOfBlocks = 1;
 
-        //if (round == 0)
-        //    numberOfBlocks = 2;
-        //else
-        //    numberOfBlocks = 1;
-
         //Randomly choose tiles with no occupied block 
         var freeTiles = tiles
             .Where(t => t.occupiedBlock == null)
-            .OrderBy(t => Random.value).ToList();
+            .OrderBy(t => Random.value)
+            .ToList();
 
         foreach (var freeTile in freeTiles.Take(numberOfBlocks))
         {
@@ -152,7 +195,8 @@ public class GameManager : MonoBehaviour
         {
             //GAME OVER
             ChangeGameState(GameState.Lose);
-            print("you lost the game, call game over panel");
+
+            //TODO: 
             return;
         }
 
@@ -161,6 +205,10 @@ public class GameManager : MonoBehaviour
 
         ChangeGameState(blocks.Any(b => b.blockValue == winValue) ? GameState.Win : GameState.WaitForInput);
     }
+
+    #endregion
+
+    #region Shift Block
 
     void ShiftBlocks(Vector2 direction)
     {
@@ -213,13 +261,17 @@ public class GameManager : MonoBehaviour
                     }
                 }
 
-                //loop through until my currentTile and block's currentTile aren't the same 
-            } while (currentTile != newBlock.myCurrentTile);
+                
+            }
+            //loop through until my currentTile and block's currentTile aren't the same 
+            while (currentTile != newBlock.myCurrentTile);
 
         }
+
         #endregion
 
         #region Moving Blocks
+
         var sequence = DOTween.Sequence();
 
         foreach (Block moveBlock in orderedBlocks)
@@ -242,10 +294,14 @@ public class GameManager : MonoBehaviour
 
         }
         ChangeGameState(GameState.SpawningBlocks);
+
         #endregion
     }
 
+    #endregion
+
     #region Merge Block
+
     void MergeBlock(Block baseBlock, Block mergingBlock)
     {
         //spawn a new block at base block's tile and base block value multiplied by 2 (since merging the values too)
@@ -255,9 +311,11 @@ public class GameManager : MonoBehaviour
         DestroyBlock(baseBlock, 0.0001f);
         DestroyBlock(mergingBlock, 0.0001f);
     }
+
     #endregion
 
     #region Destroy Block
+
     void DestroyBlock(Block block, float delay)
     {
         //remove from the list of blocks
@@ -266,17 +324,10 @@ public class GameManager : MonoBehaviour
         //then destroy its game object
         Destroy(block.gameObject, delay);
     }
+
     #endregion
 }
 
-public enum GameState
-{
-    GenerateGrid,
-    SpawningBlocks,
-    WaitForInput,
-    Moving,
-    Win,
-    Lose
-}
+
 
 
