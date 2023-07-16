@@ -12,15 +12,19 @@ public enum GameState
     WaitForInput,
     Moving,
     Win,
-    Lose
+    Lose,
+    Play
 }
 
 public class GameManager : MonoBehaviour
 {
+    public static GameManager Instance;
+
     public GameState gameState;
 
     public event Action OnGameWon;
     public event Action OnGameLost;
+    public event Action OnMoveCounter;
 
     [SerializeField] private int width = 4;
     [SerializeField] private int height = 4;
@@ -39,7 +43,12 @@ public class GameManager : MonoBehaviour
 
     private readonly float boardOffset = 0.5f;
 
-    #region Get Functions
+    private void Awake()
+    {
+        Instance = this;
+    }
+
+    #region Getter Functions
 
     private BlockData GetBlockDataByValue(int value)
     {
@@ -58,7 +67,7 @@ public class GameManager : MonoBehaviour
 
     #endregion
 
-    private void ChangeGameState(GameState currentState)
+    public void ChangeGameState(GameState currentState)
     {
         gameState = currentState;
 
@@ -101,7 +110,7 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        ChangeGameState(GameState.GenerateGrid);
+        ChangeGameState(GameState.WaitForInput);
     }
 
     private void Update()
@@ -161,6 +170,8 @@ public class GameManager : MonoBehaviour
 
     private void SpawnBlock(Tile freeTile, int value)
     {
+ 
+
         //Spawn given number of blocks at our freeTile position
         var spawnBlock = Instantiate(blockPrefab, freeTile.Pos, Quaternion.identity);
 
@@ -213,6 +224,9 @@ public class GameManager : MonoBehaviour
     void ShiftBlocks(Vector2 direction)
     {
         ChangeGameState(GameState.Moving);
+
+        //Increment Moves counter 
+        OnMoveCounter?.Invoke();
 
         #region Order Blocks
         //order the blocks by X and then by Y
