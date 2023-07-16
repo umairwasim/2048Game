@@ -35,7 +35,9 @@ public class GameManager : MonoBehaviour
     [SerializeField] private BlockTypeSO blockTypeSO;
     [SerializeField] private float snapDuration = 0.2f;
     [SerializeField] private int winValue = 2048;
+    [SerializeField] private AudioClip buttonSfx;
 
+    private AudioSource audioSource;
     private readonly List<Tile> tiles = new();
     private readonly List<Block> blocks = new();
 
@@ -46,6 +48,7 @@ public class GameManager : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        audioSource = GetComponent<AudioSource>(); 
     }
 
     #region Getter Functions
@@ -168,10 +171,8 @@ public class GameManager : MonoBehaviour
 
     #region Shift Block
 
-    private void SpawnBlock(Tile freeTile, int value)
+    private void SpawnSingleBlock(Tile freeTile, int value)
     {
- 
-
         //Spawn given number of blocks at our freeTile position
         var spawnBlock = Instantiate(blockPrefab, freeTile.Pos, Quaternion.identity);
 
@@ -182,8 +183,6 @@ public class GameManager : MonoBehaviour
         spawnBlock.SetBlockOnTile(freeTile);
 
         //Set the value of the spawned block 
-        // spawnBlock.Init(GetBlockByValue(value));
-
         spawnBlock.Init(GetBlockDataByValue(value));
     }
 
@@ -199,15 +198,13 @@ public class GameManager : MonoBehaviour
 
         foreach (var freeTile in freeTiles.Take(numberOfBlocks))
         {
-            SpawnBlock(freeTile, Random.value > 0.8f ? 4 : 2);
+            SpawnSingleBlock(freeTile, Random.value > 0.8f ? 4 : 2);
         }
 
         if (freeTiles.Count() < 1)
         {
             //GAME OVER
-            ChangeGameState(GameState.Lose);
-
-            //TODO: 
+            ChangeGameState(GameState.Lose); 
             return;
         }
 
@@ -224,6 +221,8 @@ public class GameManager : MonoBehaviour
     void ShiftBlocks(Vector2 direction)
     {
         ChangeGameState(GameState.Moving);
+
+        audioSource.PlayOneShot(buttonSfx);
 
         //Increment Moves counter 
         OnMoveCounter?.Invoke();
@@ -275,7 +274,7 @@ public class GameManager : MonoBehaviour
                     }
                 }
 
-                
+
             }
             //loop through until my currentTile and block's currentTile aren't the same 
             while (currentTile != newBlock.myCurrentTile);
@@ -319,7 +318,7 @@ public class GameManager : MonoBehaviour
     void MergeBlock(Block baseBlock, Block mergingBlock)
     {
         //spawn a new block at base block's tile and base block value multiplied by 2 (since merging the values too)
-        SpawnBlock(baseBlock.myCurrentTile, baseBlock.blockValue * 2);
+        SpawnSingleBlock(baseBlock.myCurrentTile, baseBlock.blockValue * 2);
 
         //Destroy both base and merging blocks after spawning a new merged block 
         DestroyBlock(baseBlock, 0.0001f);
