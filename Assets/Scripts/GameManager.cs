@@ -26,29 +26,34 @@ public class GameManager : MonoBehaviour
     public event Action OnGameLost;
     public event Action OnMoveCounter;
 
+    [Header("Map Data")]
     [SerializeField] private int width = 4;
     [SerializeField] private int height = 4;
+    [SerializeField] private float snapDuration = 0.2f;
+    [SerializeField] private int winValue = 2048;
 
+    [Header("Prefabs")]
     [SerializeField] private Tile tilePrefab;               //Tile is a container for block
     [SerializeField] private Block blockPrefab;             //Actual block prefab with number and color
     [SerializeField] private SpriteRenderer boardPrefab;
+
+    [Header("Block Data")]
     [SerializeField] private BlockTypeSO blockTypeSO;
-    [SerializeField] private float snapDuration = 0.2f;
-    [SerializeField] private int winValue = 2048;
+
+    [Header("Audio")]
     [SerializeField] private AudioClip buttonSfx;
 
     private AudioSource audioSource;
     private readonly List<Tile> tiles = new();
     private readonly List<Block> blocks = new();
+    private readonly float boardOffset = 0.5f;
 
     private int round = 0;
-
-    private readonly float boardOffset = 0.5f;
 
     private void Awake()
     {
         Instance = this;
-        audioSource = GetComponent<AudioSource>(); 
+        audioSource = GetComponent<AudioSource>();
     }
 
     #region Getter Functions
@@ -204,7 +209,7 @@ public class GameManager : MonoBehaviour
         if (freeTiles.Count() < 1)
         {
             //GAME OVER
-            ChangeGameState(GameState.Lose); 
+            ChangeGameState(GameState.Lose);
             return;
         }
 
