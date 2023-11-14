@@ -28,9 +28,13 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI moveText;
     private int moveCounter = 0;
 
-    private void Start()
+    private void Awake()
     {
         ActivateMenu(menu);
+    }
+
+    private void Start()
+    {
         GameManager.Instance.OnGameWon += GameManager_OnGameWon;
         GameManager.Instance.OnGameLost += GameManager_OnGameLost;
         GameManager.Instance.OnMoveCounter += GameManager_OnMoveCounter;

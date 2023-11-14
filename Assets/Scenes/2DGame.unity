@@ -949,8 +949,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gameState: 2
-  width: 4
-  height: 4
+  width: 9
+  height: 5
   snapDuration: 0.2
   winValue: 2048
   tilePrefab: {fileID: 2576052519651324950, guid: f8b79862ab99eae408d9c6a6cc4df00d, type: 3}
